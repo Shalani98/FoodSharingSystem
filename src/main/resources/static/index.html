@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Food Sharing Platform</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        body {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)),
+            url('https://images.unsplash.com/photo-1498837167922-ddd27525d352') center/cover fixed;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px);
+            border-radius: 0 0 15px 15px;
+        }
+        .glass {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .hero {
+            height: 280px;
+            display: flex;
+            align-items: center;
+            padding: 40px;
+            border-radius: 20px;
+        }
+        .form-control {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+        }
+        .form-control::placeholder { color: #ddd; }
+        .btn-success { border-radius: 25px; font-weight: bold; }
+        .food-card {
+            border-radius: 20px;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+        .food-card:hover { transform: scale(1.03); }
+        .food-img { height: 180px; object-fit: cover; }
+        #preview {
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+        .filter-buttons {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar px-4 py-3 d-flex justify-content-between">
+    <h4 class="fw-bold text-light">🌿 Sharing Excess</h4>
+    <button class="btn btn-success" onclick="window.location.href='main.html'">Log Out</button>
+</nav>
+
+<div class="container mt-4">
+
+    <!-- Hero Section -->
+    <div class="hero glass mb-4">
+        <div>
+            <h1>Rescuing Food,<br>Feeding Communities</h1>
+            <p>Reduce food waste. Share surplus. Help people in need.</p>
+        </div>
+    </div>
+
+    <div class="row">
+
+        <!-- ADD FOOD FORM -->
+        <div class="col-lg-4 col-md-5 mb-4">
+            <div class="glass p-4 shadow-lg h-100">
+                <h5 class="mb-3">➕ Add New Food</h5>
+
+                <input id="title" class="form-control mb-2" placeholder="Food Title">
+                <textarea id="description" class="form-control mb-2" rows="2" placeholder="Description"></textarea>
+                <input id="quantity" type="number" class="form-control mb-2" placeholder="Quantity">
+
+                <input id="location" class="form-control mb-2" placeholder="Location">
+                <input type="hidden" id="locationLat" name="locationLat">
+                <input type="hidden" id="locationLng" name="locationLng">
+
+                <button class="btn btn-outline-primary w-100 mb-3" type="button" onclick="openMapPicker()">
+                    📍 Pick Location on Map
+                </button>
+
+                <input id="availableFrom" type="datetime-local" class="form-control mb-2">
+                <input id="availableUntil" type="datetime-local" class="form-control mb-2">
+                <input id="donorId" type="number" class="form-control mb-3" placeholder="Donor ID">
+
+                <input id="image" type="file" class="form-control mb-2" accept="image/*">
+                <img id="preview" alt="Preview">
+
+                <button class="btn btn-success w-100 mt-3" onclick="addFood()">
+                    Add Food to Share
+                </button>
+            </div>
+        </div>
+
+        <!-- FOOD LIST SECTION -->
+        <div class="col-lg-8 col-md-7">
+
+            <!-- Filter Buttons -->
+            <div class="filter-buttons text-center text-md-start">
+                <button class="btn btn-outline-light me-2" onclick="filterFoods('all')">All Foods</button>
+                <button class="btn btn-warning me-2" onclick="filterFoods('pending')">🟡 Pending</button>
+                <button class="btn btn-success" onclick="filterFoods('claimed')">🟢 Claimed</button>
+            </div>
+
+            <!-- Food Cards -->
+            <div class="row" id="foodList"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let allFoods = [];
+
+    // Image preview
+    document.getElementById("image").addEventListener("change", function(){
+        let file = this.files[0];
+        let preview = document.getElementById("preview");
+        if(file){
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = "block";
+        } else {
+            preview.style.display = "none";
+        }
+    });
+
+    // Leaflet Map Picker (unchanged)
+    function openMapPicker() {
+        let modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.background = 'rgba(0,0,0,0.7)';
+        modal.style.zIndex = '9999';
+
+        let mapDiv = document.createElement('div');
+        mapDiv.style.width = '80%';
+        mapDiv.style.height = '80%';
+        mapDiv.style.margin = '5% auto';
+        mapDiv.style.border = '2px solid white';
+        mapDiv.style.borderRadius = '10px';
+        modal.appendChild(mapDiv);
+        document.body.appendChild(modal);
+
+        let defaultLat = 6.041, defaultLng = 80.548;
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => initLeafletMap(pos.coords.latitude, pos.coords.longitude, mapDiv, modal),
+                () => initLeafletMap(defaultLat, defaultLng, mapDiv, modal)
+            );
+        } else {
+            initLeafletMap(defaultLat, defaultLng, mapDiv, modal);
+        }
+    }
+
+    async function getAddressFromCoords(lat, lng) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+            const data = await response.json();
+            document.getElementById("location").value = data.display_name || `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+        } catch (err) {
+            console.error(err);
+            document.getElementById("location").value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+        }
+    }
+
+    function initLeafletMap(lat, lng, mapDiv, modal) {
+        let map = L.map(mapDiv).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        let marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+        marker.on('dragend', function(e) {
+            let coords = e.target.getLatLng();
+            document.getElementById('locationLat').value = coords.lat;
+            document.getElementById('locationLng').value = coords.lng;
+            getAddressFromCoords(coords.lat, coords.lng);
+        });
+
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
+            let coords = e.latlng;
+            document.getElementById('locationLat').value = coords.lat;
+            document.getElementById('locationLng').value = coords.lng;
+            getAddressFromCoords(coords.lat, coords.lng);
+        });
+
+        let btn = document.createElement('button');
+        btn.innerText = "✅ Confirm Location";
+        btn.style.position = 'absolute';
+        btn.style.bottom = '20px';
+        btn.style.left = '50%';
+        btn.style.transform = 'translateX(-50%)';
+        btn.style.padding = '10px 20px';
+        btn.style.fontSize = '16px';
+        modal.appendChild(btn);
+
+        btn.onclick = () => {
+            let pos = marker.getLatLng();
+            document.getElementById('locationLat').value = pos.lat;
+            document.getElementById('locationLng').value = pos.lng;
+            getAddressFromCoords(pos.lat, pos.lng);
+            document.body.removeChild(modal);
+        };
+    }
+
+    // Add Food (unchanged)
+    function addFood() {
+        let food = {
+            title: document.getElementById("title").value,
+            description: document.getElementById("description").value,
+            quantity: Number(document.getElementById("quantity").value),
+            location: document.getElementById("location").value,
+            locationLat: Number(document.getElementById("locationLat").value),
+            locationLng: Number(document.getElementById("locationLng").value),
+            availableFrom: document.getElementById("availableFrom").value,
+            availableUntil: document.getElementById("availableUntil").value,
+            donorId: Number(document.getElementById("donorId").value)
+        };
+
+        let formData = new FormData();
+        formData.append("food", new Blob([JSON.stringify(food)], { type: "application/json" }));
+
+        let imageFile = document.getElementById("image").files[0];
+        if (imageFile) formData.append("image", imageFile);
+
+        fetch('/foods/addFood', { method: 'POST', body: formData })
+            .then(res => res.text())
+            .then(msg => { alert(msg); loadFoods(); });
+    }
+
+    // Generate Receipt (unchanged)
+    function generateReceiptId() {
+        return "RCPT-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+    }
+
+    async function generateReceipt(id) {
+        let food = allFoods.find(f => f.id === id);
+        if (!food || !food.claimed) {
+            alert("❌ Claim food first!");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let receiptId = generateReceiptId();
+
+        let imgData = await new Promise((resolve, reject) => {
+            let img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = function() {
+                let canvas = document.createElement("canvas");
+                canvas.width = this.width;
+                canvas.height = this.height;
+                let ctx = canvas.getContext("2d");
+                ctx.drawImage(this, 0, 0);
+                resolve(canvas.toDataURL("image/jpeg"));
+            };
+            img.onerror = reject;
+            img.src = food.imageUrl || 'https://source.unsplash.com/300x200/?food';
+        });
+
+        doc.setFontSize(16);
+        doc.text("🌿 Food Sharing Receipt", 20, 20);
+        doc.setFontSize(10);
+        doc.text("Receipt ID: " + receiptId, 20, 30);
+        doc.addImage(imgData, 'JPEG', 20, 35, 60, 40);
+
+        let y = 85;
+        doc.setFontSize(12);
+        doc.text("Title: " + food.title, 20, y); y += 10;
+        doc.text("Description: " + (food.description || "-"), 20, y); y += 10;
+        doc.text("Location: " + food.location, 20, y); y += 10;
+        doc.text("Quantity: " + food.quantity, 20, y); y += 10;
+        doc.text("From: " + food.availableFrom, 20, y); y += 10;
+        doc.text("Until: " + food.availableUntil, 20, y); y += 10;
+        doc.text("Status: Assigned", 20, y); y += 10;
+        doc.text("🌿 Sharing Excess Platform", 20, y + 10);
+
+        doc.save(receiptId + ".pdf");
+    }
+
+    function displayFoods(data) {
+        let list = document.getElementById("foodList");
+        list.innerHTML = "";
+
+        data.forEach(food => {
+            list.innerHTML += `
+            <div class="col-md-6 mb-4">
+                <div class="glass food-card shadow">
+                    <img src="${food.imageUrl || 'https://source.unsplash.com/300x200/?food'}" class="food-img">
+                    <div class="p-3">
+                        <h5>${food.title}</h5>
+                        <p>${food.description || ""}</p>
+                        <p>📍 ${food.location}</p>
+                        <p>Qty: ${food.quantity}</p>
+                        <p>
+                            ${food.claimed
+                                ? '<span class="text-success">🟢 Claimed</span>'
+                                : '<span class="text-warning">🟡 Pending</span>'}
+                        </p>
+                        ${food.claimed
+                            ? `<button class="btn btn-light btn-sm w-100 mt-2" onclick="generateReceipt(${food.id})">🧾 Download Receipt</button>`
+                            : `<button class="btn btn-secondary btn-sm w-100 mt-2" disabled>🔒 Claim First</button>`}
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    function filterFoods(status) {
+        let filtered = [];
+
+        if (status === 'all') {
+            filtered = allFoods;
+        } else if (status === 'pending') {
+            filtered = allFoods.filter(f => !f.claimed);
+        } else if (status === 'claimed') {
+            filtered = allFoods.filter(f => f.claimed);
+        }
+
+        displayFoods(filtered);
+    }
+
+    function loadFoods() {
+        fetch('/foods/getFood')
+            .then(res => res.json())
+            .then(data => {
+                allFoods = data;
+                displayFoods(data);   // Use the same display function
+            });
+    }
+
+    // Initial load
+    loadFoods();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f1f5f9;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 240px;
+            background: #0f172a;
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+
+        .sidebar h4 {
+            margin-bottom: 30px;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 12px;
+            color: #cbd5e1;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar a:hover {
+            background: #1e293b;
+            color: white;
+        }
+
+        /* TOPBAR */
+        .topbar {
+            background: white;
+            padding: 15px 25px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        /* MAIN */
+        .main {
+            flex-grow: 1;
+        }
+
+        /* CARDS */
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-card h6 {
+            color: #64748b;
+        }
+
+        .stat-card h3 {
+            margin: 0;
+        }
+
+        /* TABLE */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        /* BADGES */
+        .badge {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="d-flex">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h4>🌿 Admin Panel</h4>
+        <a onclick="show('foods')">Food Management</a>
+        <div class="mt-4">
+            <a href="login.html" class="btn btn-danger w-100">
+                🔓 Log Out
+            </a>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- TOPBAR -->
+        <div class="topbar d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Dashboard</h5>
+            <span class="text-muted">Welcome Admin</span>
+        </div>
+
+        <div class="p-4">
+
+            <!-- STATS -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <h6>Total Foods</h6>
+                        <h3 id="totalFoods">0</h3>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <h6>Assigned</h6>
+                        <h3 id="assignedFoods">0</h3>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <h6>Pending</h6>
+                        <h3 id="pendingFoods">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div id="foods" class="table-container">
+
+                <h5 class="mb-3">Food Management</h5>
+                <a href="login.html" button class="btn btn-success w-100 mt-3" >Log Out</a></button>
+
+                <table class="table align-middle">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Qty</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+                    <tbody id="foodTable"></tbody>
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+    function show(id){
+        document.getElementById("foods").style.display="block";
+    }
+
+    function loadFoods(){
+        fetch('/foods/getFood')
+        .then(res=>res.json())
+        .then(data=>{
+            let table=document.getElementById("foodTable");
+            table.innerHTML="";
+
+            let total = data.length;
+            let assigned = 0;
+            let pending = 0;
+
+            data.forEach(f=>{
+                if(f.claimed) assigned++; else pending++;
+
+                table.innerHTML+=`
+                <tr>
+                    <td>${f.id}</td>
+                    <td>${f.title}</td>
+                    <td>${f.quantity}</td>
+                    <td>${f.location}</td>
+                    <td>
+                        ${f.claimed
+                            ? '<span class="badge bg-success">Assigned</span>'
+                            : '<span class="badge bg-warning text-dark">Pending</span>'}
+                    </td>
+                    <td>
+                        ${
+                            !f.claimed
+                            ? `<button class="btn btn-success btn-sm" onclick="claimFood(${f.id})">Assign</button>`
+                            : `<span class="badge bg-success">Done</span>`
+                        }
+                    </td>
+                </tr>`;
+            });
+
+            // UPDATE STATS
+            document.getElementById("totalFoods").innerText = total;
+            document.getElementById("assignedFoods").innerText = assigned;
+            document.getElementById("pendingFoods").innerText = pending;
+        });
+    }
+
+    function claimFood(id){
+        fetch('/foods/claim/'+id,{method:'PUT'})
+        .then(res=>res.text())
+        .then(msg=>{
+            alert(msg);
+            loadFoods();
+        });
+    }
+
+    loadFoods();
+
+</script>
+
+</body>
+</html>

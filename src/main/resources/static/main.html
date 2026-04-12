@@ -1,0 +1,196 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FoodShare Main</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* ===== HERO SECTION ===== */
+        .hero-section {
+            height: 100vh;
+            background: 
+                linear-gradient(rgba(0, 100, 0, 0.6), rgba(0, 0, 0, 0.6)),
+                url('https://images.unsplash.com/photo-1606787366850-de6330128bfc'); /* you can replace */
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            z-index: 10;
+        }
+
+        .logo-box {
+            background: #00c853;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 6px;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        /* ===== TEXT ===== */
+        .hero-title {
+            font-size: 60px;
+            font-weight: 800;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            max-width: 600px;
+        }
+
+        .highlight {
+            background: #00c853;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        /* ===== FOOD CARDS ===== */
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .card img {
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-transparent position-absolute w-100 px-4">
+    <a class="navbar-brand fw-bold" href="#">
+        <span class="logo-box">SE</span> Sharing Excess
+    </a>
+
+    <div class="ms-auto d-flex gap-2">
+       
+        <a href="login.html" button class="btn btn-outline-light" >Login/Register</a>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero-section d-flex align-items-center">
+    <div class="container text-white">
+        <h1 class="hero-title">
+            Rescuing Food,<br>
+            Feeding Communities
+        </h1>
+
+        <p class="hero-subtitle mt-3">
+            Sharing Excess rescues and distributes more than
+            <span class="highlight">2,000,000 lbs. of food</span> every week.
+        </p>
+
+
+    </div>
+</section>
+
+<!-- Food Dashboard -->
+<div class="container mt-5">
+    <div class="row" id="foodList"></div>
+</div>
+
+<script>
+    // ===== LOAD FOODS =====
+   function loadFoods() {
+    fetch('/foods/getFood')
+        .then(res => res.json())
+        .then(data => {
+            const foodList = document.getElementById("foodList");
+            foodList.innerHTML = "";
+
+            data.forEach(food => {
+                foodList.innerHTML += `
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            <img src="${food.imageUrl || 'https://source.unsplash.com/400x250/?food'}" class="card-img-top">
+                            <div class="card-body">
+                                <h5 class="card-title">${food.title}</h5>
+                                <p class="card-text">${food.description || ""}</p>
+                                <p class="card-text">📍 ${food.location}</p>
+                                <p class="card-text">Quantity: ${food.quantity}</p>
+
+
+
+                                <button class="btn btn-success w-100"
+                                    ${food.claimed ? 'disabled' : ''}>
+                                    ${food.claimed ? 'Already Claimed' : 'Request'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+}
+
+    // ===== LOGOUT =====
+    function logout() {
+        alert("Logged out!");
+        window.location.href = "login.html";
+    }
+
+    // Load foods on page load
+    loadFoods();
+</script>
+<!-- ===== FOOTER ===== -->
+<footer class="bg-dark text-white mt-5 pt-4 pb-3">
+    <div class="container">
+        <div class="row">
+
+            <!-- About -->
+            <div class="col-md-4 mb-3">
+                <h5>Sharing Excess</h5>
+                <p>
+                    Helping reduce food waste and feed communities.
+                    Donors can share excess food and help those in need.
+                </p>
+            </div>
+
+            <!-- Contact -->
+            <div class="col-md-4 mb-3">
+                <h5>Contact Us</h5>
+                <p>📍 Matara, Sri Lanka</p>
+                <p>📞 +94 77 123 4567</p>
+                <p>
+                    📧 <a href="mailto:sharingexpress85@gmail.com" class="text-white text-decoration-none">
+                    foodshare@gmail.com
+                </a>
+                </p>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="col-md-4 mb-3">
+                <h5>Quick Links</h5>
+                <ul class="list-unstyled">
+                    <li><a href="login.html" class="text-white text-decoration-none">Login</a></li>
+
+                    <li><a href="#" class="text-white text-decoration-none">View Foods</a></li>
+                </ul>
+            </div>
+
+        </div>
+
+        <hr class="bg-light">
+
+        <div class="text-center">
+            <p class="mb-0">
+                © 2026 Sharing Excess | All Rights Reserved
+            </p>
+        </div>
+    </div>
+</footer>
+</body>
+</html>
+
