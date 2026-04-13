@@ -51,21 +51,20 @@ A full-stack web application built using **Spring Boot** that enables users to s
 
 ---
 
-## 📁 Project Structure
-
-```id="struct01"
-foodsharing/
-│
-├── controller
-├── service
-├── repository
-├── entity
-├── dto
-├── resources
-└── uploads (for images)
-```
-
----
+📁 Project Structure
+src/
+ ├── main/
+ │   ├── java/com/example/foodsharing
+ │   │   ├── controller
+ │   │   ├── service
+ │   │   ├── repository
+ │   │   ├── entity
+ │   │   └── dto
+ │   ├── resources
+ │   │   ├── static
+ │   │   ├── templates
+ │   │   └── application.yml
+ └── build.gradle
 
 ## ⚙️ Setup Instructions
 
