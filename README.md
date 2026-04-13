@@ -16,11 +16,9 @@ A full-stack web application built using **Spring Boot** that enables users to s
 
 * 👤 User Registration & Login system
 * 📦 Add food donations with image upload
-* 🔍 Browse available food items
 * 📍 Location-based food details
 * 🤝 Claim food functionality
-* 🗑️ Delete food listings
-* 👨‍💼 Admin-level food & user management
+* 👨‍💼 Admin-level food management
 * 🖼️ Image upload support for food items
 
 ---
@@ -47,7 +45,7 @@ A full-stack web application built using **Spring Boot** that enables users to s
 
 ### Tools
 
-* Maven
+* Gradle
 * Postman
 * Git & GitHub
 
